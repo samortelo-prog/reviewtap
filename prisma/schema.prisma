@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum TagStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EventType {
+  NFC_READ
+  QR_READ
+  GOOGLE_CLICK
+  WHATSAPP_CLICK
+  INSTAGRAM_CLICK
+  FACEBOOK_CLICK
+  WEBSITE_CLICK
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(ADMIN)
+  createdAt    DateTime   @default(now())
+  businesses   Business[]
+  resetTokens  PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Business {
+  id              String   @id @default(cuid())
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id])
+  name            String
+  slug            String   @unique
+  logoUrl         String?
+  category        String
+  description     String?
+  address         String?
+  city            String?
+  phone           String?
+  whatsapp        String?
+  instagram       String?
+  facebook        String?
+  website         String?
+  googleReviewUrl String
+  createdAt       DateTime @default(now())
+  tags            NfcTag[]
+}
+
+model NfcTag {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  code       String    @unique
+  url        String
+  status     TagStatus @default(ACTIVE)
+  createdAt  DateTime  @default(now())
+  visits     Visit[]
+}
+
+model Visit {
+  id        String    @id @default(cuid())
+  tagId     String
+  tag       NfcTag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  type      EventType
+  device    String?
+  browser   String?
+  os        String?
+  country   String?
+  createdAt DateTime  @default(now())
+
+  @@index([tagId, type, createdAt])
+}
